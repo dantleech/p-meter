@@ -1,0 +1,31 @@
+{
+    "name": "dantleech/p-meter",
+    "description": "J-Meter in PHP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Leech",
+            "email": "daniel@dantleech.com"
+        }
+    ],
+    "require": {
+        "phpunit/phpunit": "^7.0"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "PMeter\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PMeter\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
+}
