@@ -2,21 +2,39 @@
 
 namespace PMeter;
 
-use PMeter\Stage;
 use Generator;
+use InvalidArgumentException;
 
-// 
-class Pipeline implements Stage
+class Pipeline
 {
     /**
      * @var Generator[]
      */
     private $generators;
 
+    /**
+     * The pipeline accepts an array of stages.
+     * Stages MUST be callable and each stage MUST return a generator.
+     */
     public function __construct(array $stages = [])
     {
         foreach ($stages as $stage) {
-            $this->generators[] = $stage([]);
+            if (false === is_callable($stage)) {
+                throw new InvalidArgumentException(sprintf(
+                    'Stage must be a callable (e.g. closure, invokable class, or other callback)'
+                ));
+            }
+
+            $generator = $stage([]);
+
+            if (false === $generator instanceof Generator) {
+                throw new InvalidArgumentException(sprintf(
+                    'Callable must return a Generator instance, got "%s"',
+                    is_object($generator) ? get_class($generator) : gettype($generator)
+                ));
+            }
+
+            $this->generators[] = $generator;
         }
     }
 
@@ -25,7 +43,7 @@ class Pipeline implements Stage
         // get the input
         $data = yield;
 
-        // repeat until one of the generators is not valid
+        // repeat until one of the generators is exhausted (not valid)
         while (true) {
             // run all of the stage generators sequentially, passing the result
             // of the previous stage to the next stage.
@@ -43,6 +61,12 @@ class Pipeline implements Stage
         }
     }
 
+    /**
+     * Run the pipeline.
+     *
+     * Run all of the stages in the pipeline sequentially.
+     * An initial value can be passed.
+     */
     public function run(array $data = []): array
     {
         $generator = $this->__invoke();

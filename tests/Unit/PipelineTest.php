@@ -6,13 +6,14 @@ use PHPUnit\Framework\TestCase;
 use PMeter\Stage;
 use PMeter\Pipeline;
 use Generator;
+use InvalidArgumentException;
 
 class PipelineTest extends TestCase
 {
     public function testSingleValueStep()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -29,7 +30,7 @@ class PipelineTest extends TestCase
     public function testMultiValueStep()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -48,7 +49,7 @@ class PipelineTest extends TestCase
     public function testMultiStage()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -56,7 +57,7 @@ class PipelineTest extends TestCase
                     yield $data;
                 }
             },
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -73,7 +74,7 @@ class PipelineTest extends TestCase
     public function testMultiStageTake()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = [];
@@ -83,7 +84,7 @@ class PipelineTest extends TestCase
                     }
                 }
             },
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 {
                     $data = [];
@@ -101,7 +102,7 @@ class PipelineTest extends TestCase
     public function testNestedPipeline()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     yield;
@@ -109,7 +110,7 @@ class PipelineTest extends TestCase
                 }
             },
             new Pipeline([
-                new class implements Stage {
+                new class {
                     function __invoke(): Generator 
                     { 
                         $data = yield;
@@ -117,7 +118,7 @@ class PipelineTest extends TestCase
                         yield $data;
                     }
                 },
-                new class implements Stage {
+                new class {
                     function __invoke(): Generator 
                     { 
                         $data = yield;
@@ -126,7 +127,7 @@ class PipelineTest extends TestCase
                     }
                 },
             ]),
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -143,7 +144,7 @@ class PipelineTest extends TestCase
     public function testPrimesInput()
     {
         $pipeline = new Pipeline([
-            new class implements Stage {
+            new class {
                 function __invoke(): Generator 
                 { 
                     $data = yield;
@@ -154,5 +155,21 @@ class PipelineTest extends TestCase
         ]);
         $result = $pipeline->run([ 0 ]);
         $this->assertEquals([0, 1], $result);
+    }
+
+    public function testThrowsExceptionForNotCallableStage()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Stage must be a callable');
+
+        $pipeline = new Pipeline([[]]);
+    }
+
+    public function testThrowsExceptionWhenStageNotYieldingAGenerator()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Callable must return a Generator instance');
+
+        $pipeline = new Pipeline([ function () { return [ 'asd' ]; } ]);
     }
 }
