@@ -67,7 +67,7 @@ class Pipeline
      * Run all of the stages in the pipeline sequentially.
      * An initial value can be passed.
      */
-    public function run(array $data = []): array
+    public function run($data = null)
     {
         $generator = $this->__invoke();
 

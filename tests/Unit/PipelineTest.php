@@ -172,4 +172,25 @@ class PipelineTest extends TestCase
 
         $pipeline = new Pipeline([ function () { return [ 'asd' ]; } ]);
     }
+
+    public function testOuroborosFibonacci()
+    {
+        $pipeline = new Pipeline([
+            function () {
+                $data = yield;
+                for ($i = 0; $i < 11; $i++) {
+                    $data = yield $data;
+                }
+            },
+            function () {
+                $data = yield;
+                while (true) {
+                    $data[] = array_sum(array_slice($data, -2));
+                    $data = yield $data;
+                }
+            },
+        ]);
+        $result = $pipeline->run([0, 1]);
+        $this->assertEquals([0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144], $result);
+    }
 }
