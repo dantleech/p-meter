@@ -28,7 +28,8 @@ class SummaryTransform
     public function __invoke(): Generator
     {
         $data = yield;
-        $collection = [];
+        $aggregates = [];
+        $count = 0;
 
         while (true) {
             if (false === is_array($data)) {
@@ -38,79 +39,64 @@ class SummaryTransform
                 ));
             }
 
-            // TODO: This is a massive memory leak
-            $collection[] = (array) $data;
-            $grouped = $this->groupData($collection);
-            $summarized = $this->summarizeData($grouped);
+            $count++;
 
-            $data = yield $summarized;
+            $hash = $this->buildHash($data);
+
+            if (!isset($aggregates[$hash])) {
+                $aggregates[$hash] = [];
+            }
+
+            foreach ($this->summarizeFields as $field) {
+                if (false === isset($aggregates[$hash][$field])) {
+                    $aggregates[$hash][$field] = [];
+                }
+
+                $aggregates[$hash][$field][] = $data[$field];
+            }
+
+            $data = yield $this->summarizeData($aggregates, $count);
         }
     }
 
-    private function groupData(array $collection)
+    private function summarizeData(array $aggregates, int $count): array
     {
-        if (empty($this->groupBy)) {
-            return $collection;
-        }
-
-        $grouped = [];
-        foreach ($collection as $row) {
-            $row = (array) $row;
-            $hash = [];
-
-            foreach ($this->groupBy as $groupBy) {
-                if (!isset($row[$groupBy])) {
-                    throw new InvalidArgumentException(sprintf(
-                        'Group by field "%s" does not exist in input with fields "%s"',
-                        $groupBy, implode('", "', array_keys($row))
-                    ));
-                }
-                $hash[] = $row[$groupBy];
-            }
-
-            $hash = implode(', ', $hash);
-
-            if (!isset($grouped[$hash])) {
-                $grouped[$hash] = [];
-            }
-
-            $grouped[$hash][] = $row;
-        }
-
-        return $grouped;
-    }
-
-    private function summarizeData($collection)
-    {
-        return array_map(function ($table){
-            $nbSamples = count($table);
-            $fieldValues = [];
-            $row = [];
-            foreach ($this->summarizeFields as $summaryField) {
-                foreach ($table as $row) {
-                    if (false === isset($fieldValues[$summaryField])) {
-                        $fieldValues[$summaryField] = [];
-                    }
-
-                    $fieldValues[$summaryField][] = $row[$summaryField];
-
-                    unset($row[$summaryField]);
-                }
-            }
-
-            $summary = [
-                'samples' => $nbSamples,
-            ];
+        $summary = [];
+        foreach ($aggregates as $hash => $fieldValues) {
+            $nbSamples = null;
+            $summary[$hash]['hash'] = $hash;
             foreach ($fieldValues as $field => $values) {
-                $summary = array_merge($row, $summary, [
+                if (null === $nbSamples) {
+                    $nbSamples = count($values);
+                    $summary[$hash]['samples'] = $nbSamples;
+                }
+                $summary[$hash] = array_merge($summary[$hash], [
                     $field . '-mean' => Average::mean($values),
                     $field . '-min' => min($values),
                     $field . '-max' => max($values),
-                    $field . '-stdev' => Descriptive::standardDeviation($values, false),
                 ]);
             }
 
-            return $summary;
-        }, $collection);
+        }
+
+        return $summary;
+    }
+
+    private function buildHash(array $row): string
+    {
+        $hash = [];
+
+        foreach ($this->groupBy as $groupBy) {
+            if (!isset($row[$groupBy])) {
+                throw new InvalidArgumentException(sprintf(
+                    'Group by field "%s" does not exist in input with fields "%s"',
+                    $groupBy, implode('", "', array_keys($row))
+                ));
+            }
+
+            $hash[] = $row[$groupBy];
+        }
+
+        return implode(', ', $hash);
     }
 }

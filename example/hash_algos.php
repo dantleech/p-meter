@@ -16,35 +16,27 @@ use PMeter\Transform\SummaryTransform;
 use PMeter\Transform\BarChartTransform;
 use PMeter\Flow\Batch;
 use PMeter\Sampler\CallbackSampler;
+use PMeter\Generator\ParameterGenerator;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $result = (new Pipeline([
-    function () {
-        yield;
-        while (true) {
-            foreach (array_slice(hash_algos(), 0, 10) as $algo) {
-                yield [
-                    'algo' => $algo,
-                ];
-            }
-        }
-    },
+    new ParameterGenerator('algo', array_slice(hash_algos(), 0, 10)),
     new CallbackSampler(function ($params) {
         hash($params['algo'], 'Hello World');
-    }, 1000),
+    }, 100),
     new SummaryTransform([ 'algo' ], ['time']),
     new RotarySplitter([
-        new BarChartTransform('algo', 'time-mean'),
+        new BarChartTransform('hash', 'time-mean'),
         new TableTransform(),
         function () {
             $data = yield;
 
             while (true) {
                 $usage = [];
-                $usage[] = 'Memory: ' . number_format(memory_get_usage(), 2);
-                $usage[] = '  Peak: ' . number_format(memory_get_peak_usage(), 2);
-                $usage[] = '  Real: ' . number_format(memory_get_usage(true), 2);
+                $usage[] = 'Memory: ' . number_format(memory_get_usage());
+                $usage[] = '  Peak: ' . number_format(memory_get_peak_usage());
+                $usage[] = '  Real: ' . number_format(memory_get_usage(true));
                 $data = yield implode(PHP_EOL, $usage);
             }
         },

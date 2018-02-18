@@ -28,7 +28,7 @@ $result = (new Pipeline([
     //new CsvTransform(',', true),
     new SummaryTransform([ 'url' ], ['total_time']),
     new RotarySplitter([
-        new BarChartTransform('url', 'total_time-mean'),
+        new BarChartTransform('hash', 'total_time-mean'),
         new TableTransform(),
     ]),
     new Batch(2),
