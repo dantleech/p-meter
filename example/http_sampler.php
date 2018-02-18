@@ -21,8 +21,8 @@ require __DIR__ . '/../vendor/autoload.php';
 $result = (new Pipeline([
     new RotarySplitter([
         new HttpSampler('http://localhost:8080'),
-        new HttpSampler('http://localhost:8081'),
-        new HttpSampler('http://localhost:8012'),
+        new HttpSampler('https://www.google.com'),
+        new HttpSampler('http://www.wikipedia.org'),
     ]),
     new FilterTransform(['url', 'total_time']),
     //new CsvTransform(',', true),
