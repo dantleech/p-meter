@@ -66,7 +66,7 @@ class SummaryTransformTest extends StepTestCase
 
         $this->assertEquals([
             'www.example.com' => [
-                'samples' => 1,
+                'hash' => 'www.example.com',
             ],
         ], $result);
     }
@@ -91,11 +91,10 @@ class SummaryTransformTest extends StepTestCase
         $this->assertEquals([
             'www.example.com' => [
                 'samples' => 2,
-                'url' => 'www.example.com',
+                'hash' => 'www.example.com',
                 'time-mean' => 15,
                 'time-min' => 10,
                 'time-max' => 20,
-                'time-stdev' => 7.0710678118654755,
             ],
         ], $result);
     }

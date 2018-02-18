@@ -17,6 +17,8 @@ use PMeter\Transform\BarChartTransform;
 use PMeter\Flow\Batch;
 use PMeter\Sampler\CallbackSampler;
 use PMeter\Generator\ParameterGenerator;
+use PMeter\Sampler\MemorySampler;
+use PMeter\Flow\Dam;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -29,17 +31,17 @@ $result = (new Pipeline([
     new RotarySplitter([
         new BarChartTransform('hash', 'time-mean'),
         new TableTransform(),
-        function () {
-            $data = yield;
-
-            while (true) {
-                $usage = [];
-                $usage[] = 'Memory: ' . number_format(memory_get_usage());
-                $usage[] = '  Peak: ' . number_format(memory_get_peak_usage());
-                $usage[] = '  Real: ' . number_format(memory_get_usage(true));
-                $data = yield implode(PHP_EOL, $usage);
-            }
-        },
+        new Pipeline([
+            new Dam(),
+            new MemorySampler(),
+            function () {
+                $data = yield;
+                while(true) {
+                    $data = yield [ $data ];
+                }
+            },
+            new TableTransform(),
+        ]),
     ]),
     new Batch(3),
     new ImplodeTransform(),
