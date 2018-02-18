@@ -7,8 +7,8 @@ use PMeter\Util\StringUtil;
 
 class AnsiRedrawTransform
 {
-    const CLEAR_LINE = "\x1B[2K";
-    const CURSOR_COL_ZERO = "\x1B[0G";
+    const ANSI_SAVE_CURSOR_POS = "\033[s";
+    const ANSI_RESTORE_CURSOR_POS = "\033[u";
 
     public function __invoke(): Generator
     {
@@ -17,24 +17,20 @@ class AnsiRedrawTransform
         $lineLength = 0;
 
         while (true) {
+            if (null === $lastData) {
+                $data = self::ANSI_SAVE_CURSOR_POS . $data;
+            }
+
             if ($lastData) {
+                $data = self::ANSI_RESTORE_CURSOR_POS . $data;
+
                 $lineLength = $this->maxLineLength($data, $lineLength);
                 $data = $this->maximizeLines($data, $lineLength);
-                $data = self::CLEAR_LINE . $data;
-                $data = self::CURSOR_COL_ZERO . $data;
-                $data = $this->resetYPosition($lastData, $data);
             }
 
             $data = yield $data;
             $lastData = $data;
         }
-    }
-
-    private function resetYPosition($lastResult, $result)
-    {
-        $lastHeight = substr_count($lastResult, PHP_EOL) - 1;
-
-        return "\x1B[" . ($lastHeight) . 'A' . $result; // reset cursor Y pos
     }
 
     private function maxLineLength(string $result, int $maxLineLength)
@@ -52,6 +48,7 @@ class AnsiRedrawTransform
 
     private function maximizeLines(string $result, int $maxLineLength)
     {
+        $result = trim($result, PHP_EOL);
         $lines = explode(PHP_EOL, $result);
         foreach ($lines as &$line) {
             $line = StringUtil::pad($line, $maxLineLength);
