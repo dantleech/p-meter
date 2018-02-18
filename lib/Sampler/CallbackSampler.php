@@ -35,7 +35,7 @@ class CallbackSampler
                 $closure($data);
             }
 
-            $time = microtime(true) - $start;
+            $time = ((microtime(true) * 1E6) - ($start * 1E6)) / $this->revs;
 
             $data = yield array_merge($data, [
                 'time' => $time

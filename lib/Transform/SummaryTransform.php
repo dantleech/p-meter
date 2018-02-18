@@ -38,6 +38,7 @@ class SummaryTransform
                 ));
             }
 
+            // TODO: This is a massive memory leak
             $collection[] = (array) $data;
             $grouped = $this->groupData($collection);
             $summarized = $this->summarizeData($grouped);
